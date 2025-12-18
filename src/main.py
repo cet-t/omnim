@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Final
 from uuid import uuid4
 from omnim.reactive import ReactiveProperty
-from omnim.delegate import action
-from omnim.readonly import readonly
+
+import omnim.task as task
 
 
 @dataclass
@@ -35,6 +35,8 @@ async def main():
         player.item_count.subscribe(
             lambda e: print(f"[{player.uid}] {e.pre} -> {e.new}")
         )
+
+    await task.wait_until(lambda: True)
 
     count = 0
     while count < 100:
