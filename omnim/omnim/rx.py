@@ -3,7 +3,6 @@ from typing import Callable, Generic, TypeVar
 from .delegate import action
 from .readonly import readonly
 
-
 T = TypeVar("T")
 
 
@@ -54,6 +53,9 @@ class ReactiveProperty(Generic[T]):
 
     def dispose(self) -> None:
         self.on_changed.clear()
+
+    def __repr__(self) -> str:
+        return repr(self.value)
 
 
 if __name__ == "__main__":

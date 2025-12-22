@@ -1,5 +1,5 @@
 from . import delegate
-from . import reactive
+from . import rx
 from . import nullable
 from . import readonly
 from . import linq
@@ -7,7 +7,7 @@ from . import task
 
 __all__ = [
     "delegate",
-    "reactive",
+    "rx",
     "nullable",
     "readonly",
     "linq",
