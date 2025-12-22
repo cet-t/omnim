@@ -1,4 +1,6 @@
-.venv
+.vscode/
+.venv/
 __pycache__/
 omnim/dist/
 omnim/omnim.egg-info/
+omnim/build/

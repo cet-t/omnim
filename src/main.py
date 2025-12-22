@@ -1,50 +1,62 @@
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Final
-from uuid import uuid4
-from omnim.reactive import ReactiveProperty
-
-import omnim.task as task
+from datetime import date, datetime
+import random
+from omnim.step import frange, step
+from omnim.rng import rng, has_rust, uniforms, randints, rnexts, runiforms
 
 
 @dataclass
-class Player:
-    name: ReactiveProperty[str]
-    uid: Final[int]
-    last_logged_in: ReactiveProperty[datetime]
-    item_count: ReactiveProperty[int]
+class User:
+    name: str
+    registered_at: date
 
 
 async def main():
-    players = [
-        Player(
-            ReactiveProperty(str(uuid4())),
-            i,
-            ReactiveProperty(datetime.now()),
-            ReactiveProperty(0),
-        )
-        for i in range(1, 100, 2)
-    ]
+    print(f"{has_rust()=}")
 
-    for player in players:
-        player.name.subscribe(lambda e: print(f"[{player.uid}] {e.pre} -> {e.new}"))
-        player.last_logged_in.subscribe(
-            lambda e: print(f"[{player.uid}] {e.pre} -> {e.new}")
-        )
-        player.item_count.subscribe(
-            lambda e: print(f"[{player.uid}] {e.pre} -> {e.new}")
-        )
+    N = 100_000_000
 
-    await task.wait_until(lambda: True)
+    start = datetime.now()
+    _ = uniforms(N, 0, 10)
+    elapsed = datetime.now() - start
+    print(f"omnim.rng.uniforms  : {elapsed.total_seconds()*1000:.3f} ms")
 
-    count = 0
-    while count < 100:
-        player = players[count % len(players)]
-        player.item_count.value = count * 2
+    start = datetime.now()
+    _ = randints(N, 0, 10)
+    elapsed = datetime.now() - start
+    print(f"omnim.rng.randints  : {elapsed.total_seconds()*1000:.3f} ms")
 
-        count += 1
-        await asyncio.sleep(0.1)
+    start = datetime.now()
+    _ = rnexts(N, 0, 10)
+    elapsed = datetime.now() - start
+    print(f"omnim.rng.nexts     : {elapsed.total_seconds()*1000:.3f} ms")
+
+    start = datetime.now()
+    _ = runiforms(N, 0, 10)
+    elapsed = datetime.now() - start
+    print(f"omnim.rng.runiform  : {elapsed.total_seconds()*1000:.3f} ms")
+
+    xorshift = rng(seed=0, mode="xorshift")
+    start = datetime.now()
+    for _ in step(N):
+        _ = xorshift.next_int(0, 10)
+    elapsed = datetime.now() - start
+    print(f"omnim.rng.xorshift  : {elapsed.total_seconds()*1000:.3f} ms")
+
+    pcg = rng(seed=0, mode="pcg")
+    start = datetime.now()
+    for _ in step(N):
+        _ = pcg.next_int(0, 10)
+    elapsed = datetime.now() - start
+    print(f"omnim.rng.pcg       : {elapsed.total_seconds()*1000:.3f} ms")
+
+    py = random.Random(0)
+    start = datetime.now()
+    for _ in step(N):
+        _ = py.randint(0, 10)
+    elapsed = datetime.now() - start
+    print(f"random.randint      : {elapsed.total_seconds()*1000:.3f} ms")
 
 
 if __name__ == "__main__":

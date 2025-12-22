@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="omnim",
     url="https://github.com/cet-t/omnim",
-    version="0.2.0",
+    version="0.3.1",
     description="useful toolkit",
     author="cet",
     packages=["omnim"],
