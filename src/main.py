@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 import random
 from omnim.step import frange, step
-from omnim.rng import rng, has_rust, uniforms, randints, rnexts, runiforms
-from omnim.time import stopwatch
+from omnim.rng import rng, has_rust, uniforms, randints
+from omnim.time import stopwatch, benchmark
 
 
 @dataclass
@@ -13,7 +13,7 @@ class User:
     registered_at: date
 
 
-@stopwatch.benchmark
+@benchmark
 async def main():
     print(f"{has_rust()=}")
 
@@ -31,33 +31,8 @@ async def main():
         print(f"omnim.rng.randints  : {elapsed.total_seconds()*1000:.3f} ms")
 
         start = datetime.now()
-        _ = rnexts(N, 0, 10)
-        elapsed = datetime.now() - start
-        print(f"omnim.rng.nexts     : {elapsed.total_seconds()*1000:.3f} ms")
-
-        start = datetime.now()
-        _ = runiforms(N, 0, 10)
-        elapsed = datetime.now() - start
-        print(f"omnim.rng.runiform  : {elapsed.total_seconds()*1000:.3f} ms")
-
-        xorshift = rng(seed=0, mode="xorshift")
-        start = datetime.now()
         for _ in step(N):
-            _ = xorshift.next_int(0, 10)
-        elapsed = datetime.now() - start
-        print(f"omnim.rng.xorshift  : {elapsed.total_seconds()*1000:.3f} ms")
-
-        pcg = rng(seed=0, mode="pcg")
-        start = datetime.now()
-        for _ in step(N):
-            _ = pcg.next_int(0, 10)
-        elapsed = datetime.now() - start
-        print(f"omnim.rng.pcg       : {elapsed.total_seconds()*1000:.3f} ms")
-
-        py = random.Random(0)
-        start = datetime.now()
-        for _ in step(N):
-            _ = py.randint(0, 10)
+            _ = random.randint(0, 10)
         elapsed = datetime.now() - start
         print(f"random.randint      : {elapsed.total_seconds()*1000:.3f} ms")
 

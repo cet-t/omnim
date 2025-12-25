@@ -20,11 +20,11 @@ class stopwatch:
     ) -> None:
         self.__is_running = False
 
-        self.__start = self.__now
-        self.__stop = self.__now
+        self.__start = self.__now_s
+        self.__stop = self.__now_s
 
         self.__laps: list[timedelta] = []
-        self.__last_lap = self.__now
+        self.__last_lap = self.__now_s
 
         self.__on_start: action[()] = action(on_start) if on_start else action()
         self.__on_stop: action[()] = action(on_stop) if on_stop else action()
@@ -34,8 +34,8 @@ class stopwatch:
             self.start()
 
     @property
-    def __now(self) -> datetime:
-        return datetime.now()
+    def __now_s(self) -> float:
+        return perf_counter()
 
     @property
     def on_start(self) -> action[()]:
@@ -56,8 +56,8 @@ class stopwatch:
     @property
     def elapsed(self) -> timedelta:
         if self.__is_running:
-            return self.__now - self.__start
-        return self.__stop - self.__start
+            return timedelta(seconds=self.__now_s - self.__start)
+        return timedelta(seconds=self.__stop - self.__start)
 
     @property
     def laps(self) -> Iterator[timedelta]:
@@ -66,7 +66,7 @@ class stopwatch:
 
     def start(self) -> None:
         if not self.__is_running:
-            now = self.__now
+            now = self.__now_s
             self.__start = now
             self.__last_lap = now
             self.__is_running = True
@@ -79,7 +79,7 @@ class stopwatch:
 
     def stop(self) -> None:
         if self.__is_running:
-            self.__stop = self.__now
+            self.__stop = self.__now_s
             self.__is_running = False
 
             self.__on_stop.invoke()
@@ -88,8 +88,8 @@ class stopwatch:
         if not self.__is_running:
             return
 
-        now = self.__now
-        lap_time = now - self.__last_lap
+        now = self.__now_s
+        lap_time = timedelta(now - self.__last_lap)
         self.__last_lap = now
         self.__laps.append(lap_time)
 

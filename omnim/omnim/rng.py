@@ -113,7 +113,6 @@ class rng:
             raw_values = self.__generator.impl.next_batch(count)
             range_size = max_value - min_value + 1
             return [val % range_size + min_value for val in raw_values]
-            # return self.__generator.impl.next_ints(count, min_value, max_value)
         else:
             range_size = max_value - min_value + 1
             return [(self._next() % range_size + min_value) for _ in range(count)]
@@ -131,10 +130,12 @@ class rng:
             diff = max_value - min_value
             return [(self._next() / max_val * diff + min_value) for _ in range(count)]
 
-    def rnexts(self, count: int, min_value: int, max_value: int) -> list[int]:
+    def next_ints_unit(self, count: int, min_value: int, max_value: int) -> list[int]:
         return self.__generator.impl.next_ints(count, min_value, max_value)
 
-    def runiforms(self, count: int, min_value: float, max_value: float) -> list[float]:
+    def next_floats_unit(
+        self, count: int, min_value: float, max_value: float
+    ) -> list[float]:
         return self.__generator.impl.next_floats(count, min_value, max_value)
 
     def choice(self, seq: list[T]):
@@ -151,11 +152,9 @@ except Exception:  # NotImplementedError
 T = TypeVar("T", int, float)
 
 uniform = _g.next_float
-uniforms = _g.next_floats
 randint = _g.next_int
-randints = _g.next_ints
-rnexts = _g.rnexts
-runiforms = _g.runiforms
+uniforms = _g.next_floats_unit
+randints = _g.next_ints_unit
 
 
 def rand(min: T, max: T) -> T:
