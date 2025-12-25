@@ -1,5 +1,5 @@
-import time
-from typing import Callable, Final, Literal, Optional, TypeVar
+from enum import Enum
+from typing import Final, Optional, TypeVar
 from os import urandom
 from numba import njit
 from numpy import uint64, int64
@@ -14,8 +14,17 @@ except ImportError:
 T = TypeVar("T")
 
 
-def has_rust():
+class rng_mode(Enum):
+    xorshift = 0
+    pcg32 = 1
+
+
+def has_rust() -> bool:
     return HAS_RUST
+
+
+def random_device() -> int:
+    return int.from_bytes(urandom(8), "big")
 
 
 @njit
@@ -61,21 +70,14 @@ class _pcg32:
 
 
 class rng_basic:
-    def __init__(
-        self,
-        *,
-        seed: Optional[int] = None,
-        mode: Literal["xorshift", "pcg"] = "xorshift",
-    ):
-        import time
-
-        if seed is None:
-            seed = int(time.time() * 1000)
+    def __init__(self, *, seed=0, mode=rng_mode.xorshift):
+        if seed == 0:
+            seed = random_device()
 
         match mode:
-            case "xorshift":
+            case rng_mode.xorshift:
                 self.__generator = _xorshift64(seed)
-            case "pcg":
+            case rng_mode.pcg32:
                 self.__generator = _pcg32(seed)
             case _:
                 raise TypeError('mode must be "xorshift" or "pcg"')
@@ -83,108 +85,82 @@ class rng_basic:
     def _next(self) -> int:
         return self.__generator.next()
 
-    def next_int(self, min_value: int, max_value: int) -> int:
+    def random_int(self, min_value: int, max_value: int) -> int:
         return self._next() % (max_value - min_value + 1) + min_value
 
-    def next_float(self, min_value: float, max_value: float) -> float:
+    def random_float(self, min_value: float, max_value: float) -> float:
         return self._next() / self.__generator.max * (max_value - min_value) + min_value
 
-    def next_ints(self, count: int, min_value: int, max_value: int) -> list[int]:
+    def random_ints(self, count: int, min_value: int, max_value: int) -> list[int]:
         range_size = max_value - min_value + 1
         return [(self._next() % range_size + min_value) for _ in range(count)]
 
-    def next_floats(
+    def random_floats(
         self, count: int, min_value: float, max_value: float
     ) -> list[float]:
         max_val = self.__generator.max
         diff = max_value - min_value
         return [(self._next() / max_val * diff + min_value) for _ in range(count)]
 
-    def choice(self, seq: list[T]):
+    def random_choice(self, seq: list[T]):
         if not seq:
             raise IndexError("Cannot choose from an empty sequence")
-        return seq[self.next_int(0, len(seq) - 1)]
+        return seq[self.random_int(0, len(seq) - 1)]
 
 
-if HAS_RUST:
+class rng_rust:
+    def __init__(self, seed=0, mode=rng_mode.xorshift):
+        if seed == 0:
+            seed = random_device()
 
-    class rng_rust:
-        def __init__(self, seed=0):
-            if seed == 0:
-                seed = time.perf_counter_ns()
+        match mode:
+            case rng_mode.xorshift:
+                self.__generator = omnim_rng_rust.Xorshift64(seed)
+            case rng_mode.pcg32:
+                self.__generator = omnim_rng_rust.Pcg32(seed)
 
-            self.__xorshift = omnim_rng_rust.Xorshift64(seed)
-            self.__pcg = omnim_rng_rust.Pcg32(seed)
+    def next_int(self) -> int:
+        return self.__generator.next_int()
 
-        def next_int_xorshift(self) -> int:
-            return self.__xorshift.next_int()
+    def next_float(self) -> int:
+        return self.__generator.next_float()
 
-        def next_float_xorshift(self) -> int:
-            return self.__xorshift.next_float()
+    def next_ints(self, count: int) -> list[int]:
+        return self.__generator.next_ints(count)
 
-        def next_ints_xorshift(self, count: int) -> list[int]:
-            return self.__xorshift.next_ints(count)
+    def next_floats(self, count: int) -> list[float]:
+        return self.__generator.next_floats(count)
 
-        def next_floats_xorshift(self, count: int) -> list[float]:
-            return self.__xorshift.next_floats(count)
+    def random_int(self, min_value: int, max_value: int) -> int:
+        return self.__generator.random_int(min_value, max_value)
 
-        def random_int_xorshift(self, min_value: int, max_value: int) -> int:
-            return self.__xorshift.random_int(min_value, max_value)
+    def random_float(self, min_value: float, max_value: float) -> float:
+        return self.__generator.random_float(min_value, max_value)
 
-        def random_float_xorshift(self, min_value: float, max_value: float) -> float:
-            return self.__xorshift.random_float(min_value, max_value)
+    def random_ints(self, count: int, min_value: int, max_value: int) -> list[int]:
+        return self.__generator.random_ints(count, min_value, max_value)
 
-        def random_ints_xorshift(
-            self, count: int, min_value: int, max_value: int
-        ) -> list[int]:
-            return self.__xorshift.random_ints(count, min_value, max_value)
+    def random_floats(
+        self, count: int, min_value: float, max_value: float
+    ) -> list[float]:
+        return self.__generator.random_floats(count, min_value, max_value)
 
-        def random_floats_xorshift(
-            self, count: int, min_value: float, max_value: float
-        ) -> list[float]:
-            return self.__xorshift.random_floats(count, min_value, max_value)
-
-        def next_int_pcg(self) -> int:
-            return self.__pcg.next_int()
-
-        def next_float_pcg(self) -> int:
-            return self.__pcg.next_float()
-
-        def next_ints_pcg(self, count: int) -> list[int]:
-            return self.__pcg.next_ints(count)
-
-        def next_floats_pcg(self, count: int) -> list[float]:
-            return self.__pcg.next_floats(count)
-
-        def random_int_pcg(self, min_value: int, max_value: int) -> int:
-            return self.__pcg.random_int(min_value, max_value)
-
-        def random_float_pcg(self, min_value: float, max_value: float) -> float:
-            return self.__pcg.random_float(min_value, max_value)
-
-        def random_ints_pcg(
-            self, count: int, min_value: int, max_value: int
-        ) -> list[int]:
-            return self.__pcg.random_ints(count, min_value, max_value)
-
-        def random_floats_pcg(
-            self, count: int, min_value: float, max_value: float
-        ) -> list[float]:
-            return self.__pcg.random_floats(count, min_value, max_value)
-
-        def random_choice(self, seq: list[T]):
-            if not seq:
-                raise IndexError("Cannot choose from an empty sequence")
-            return seq[self.random_int_pcg(0, len(seq) - 1)]
+    def random_choice(self, seq: list[T]):
+        if not seq:
+            raise ValueError("Cannot choose from an empty sequence")
+        return seq[self.random_int(0, len(seq) - 1)]
 
 
 if has_rust():
-    _rg = rng_rust()
-    randint = _rg.random_int_pcg
-    randints = _rg.random_ints_pcg
-    randfloat = _rg.random_float_pcg
-    randfloats = _rg.random_floats_pcg
-    choice = _rg.random_choice
+    _rg = rng_rust(seed=0, mode=rng_mode.pcg32)
+else:
+    _rg = rng_basic(seed=0, mode=rng_mode.pcg32)
+
+randint = _rg.random_int
+randints = _rg.random_ints
+randfloat = _rg.random_float
+randfloats = _rg.random_floats
+choice = _rg.random_choice
 
 
 if __name__ == "__main__":
