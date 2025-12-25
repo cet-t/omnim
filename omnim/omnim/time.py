@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta
+import functools
+import inspect
+from time import perf_counter
 from typing import Callable, Iterator, Optional
-from omnim.delegate import action
+from .delegate import action
 
-_ON_CONTROL = Callable[[], None]
-_ON_LAP = Callable[[timedelta], None]
+_ON_CONTROL = Optional[Callable[[], None]]
+_ON_LAP = Optional[Callable[[timedelta], None]]
 
 
 class stopwatch:
@@ -11,9 +14,9 @@ class stopwatch:
         self,
         *,
         auto_start=False,
-        on_start: Optional[_ON_CONTROL] = None,
-        on_stop: Optional[_ON_CONTROL] = None,
-        on_lap: Optional[_ON_LAP] = None,
+        on_start: _ON_CONTROL = None,
+        on_stop: _ON_CONTROL = None,
+        on_lap: _ON_LAP = None,
     ) -> None:
         self.__is_running = False
 
@@ -92,8 +95,41 @@ class stopwatch:
 
         self.__on_lap.invoke(lap_time)
 
+    def __enter__(self) -> "stopwatch":
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.stop()
+
     def __str__(self) -> str:
         return str(self.elapsed)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} is_running={self.__is_running} elapsed={self.__str__()}>"
+
+
+@staticmethod
+def benchmark(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if inspect.iscoroutinefunction(func):
+
+            async def async_wrapper():
+                start = perf_counter()
+                result = await func(*args, **kwargs)
+                end = perf_counter()
+                elapsed = (end - start) * 1000
+                print(f"[BENCHMARK(async)] {func.__name__}: {elapsed} ms")
+                return result
+
+            return async_wrapper()
+        else:
+            start = perf_counter()
+            result = func(*args, **kwargs)
+            end = perf_counter()
+            elapsed = (end - start) * 1000
+            print(f"[BENCHMARK(sync)] {func.__name__}: {elapsed} ms")
+            return result
+
+    return wrapper
