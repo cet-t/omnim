@@ -14,36 +14,58 @@ impl Xorshift64 {
         }
     }
 
-    fn next(&mut self) -> u64 {
+    fn next_int(&mut self) -> u64 {
         self.state ^= self.state << 13;
         self.state ^= self.state >> 7;
         self.state ^= self.state << 17;
         self.state
     }
 
-    fn next_batch(&mut self, count: usize) -> Vec<u64> {
-        (0..count).map(|_| self.next()).collect()
+    fn next_float(&mut self) -> f64 {
+        let val = self.next_int();
+        val as f64 / u64::MAX as f64
     }
 
-    fn next_ints(&mut self, count: usize, min: i64, max: i64) -> Vec<i64> {
+    fn next_ints(&mut self, count: usize) -> Vec<u64> {
+        (0..count).map(|_| self.next_int()).collect()
+    }
+
+    fn next_floats(&mut self, count: usize) -> Vec<f64> {
+        (0..count).map(|_| self.next_float()).collect()
+    }
+
+    fn random_int(&mut self, min: i64, max: i64) -> i64 {
+        let range = (max - min + 1) as u64;
+        let val = self.next_int();
+        (val % range) as i64 + min
+    }
+
+    fn random_float(&mut self, min: f64, max: f64) -> f64 {
+        let diff = max - min;
+        let val = self.next_float();
+        val * diff + min
+    }
+
+    fn random_ints(&mut self, count: usize, min: i64, max: i64) -> Vec<i64> {
         let range = (max - min + 1) as u64;
         (0..count)
             .map(|_| {
-                let val = self.next();
+                let val = self.next_int();
                 (val % range) as i64 + min
             })
             .collect()
     }
 
-    fn next_floats(&mut self, count: usize, min: f64, max: f64) -> Vec<f64> {
+    fn random_floats(&mut self, count: usize, min: f64, max: f64) -> Vec<f64> {
         let diff = max - min;
-        let max_val = u64::MAX as f64;
-        (0..count)
-            .map(|_| {
-                let val = self.next() as f64;
-                (val / max_val) * diff + min
-            })
-            .collect()
+        let inv_max = 1.0 / u32::MAX as f64;
+        let mut results = Vec::with_capacity(count);
+
+        for _ in 0..count {
+            let val = self.next_int() as f64;
+            results.push((val * inv_max) * diff + min);
+        }
+        results
     }
 }
 
@@ -63,7 +85,7 @@ impl Pcg32 {
         }
     }
 
-    fn next(&mut self) -> u32 {
+    fn next_int(&mut self) -> u32 {
         let oldstate = self.state;
         self.state = oldstate
             .wrapping_mul(6364136223846793005)
@@ -74,7 +96,12 @@ impl Pcg32 {
         (xorshifted >> rot) | (xorshifted << (rot.wrapping_neg() & 31))
     }
 
-    fn next_batch(&mut self, count: usize) -> Vec<u32> {
+    fn next_float(&mut self) -> f64 {
+        let val = self.next_int() as f64;
+        val / u32::MAX as f64
+    }
+
+    fn next_ints(&mut self, count: usize) -> Vec<u32> {
         let mut results = Vec::with_capacity(count);
         for _ in 0..count {
             let oldstate = self.state;
@@ -89,22 +116,44 @@ impl Pcg32 {
         results
     }
 
-    fn next_ints(&mut self, count: usize, min: i64, max: i64) -> Vec<i64> {
+    fn next_floats(&mut self, count: usize) -> Vec<f64> {
+        let mut results = Vec::with_capacity(count);
+        for _ in 0..count {
+            let val = self.next_int() as f64;
+            results.push(val / u32::MAX as f64);
+        }
+        results
+    }
+
+    fn random_int(&mut self, min: i64, max: i64) -> i64 {
+        let range = (max - min + 1) as u32;
+        let val = self.next_int();
+        (val % range) as i64 + min
+    }
+
+    fn random_float(&mut self, min: f64, max: f64) -> f64 {
+        let diff = max - min;
+        let max_val = u32::MAX as f64;
+        let val = self.next_int() as f64;
+        (val / max_val) * diff + min
+    }
+
+    fn random_ints(&mut self, count: usize, min: i64, max: i64) -> Vec<i64> {
         let range = (max - min + 1) as u64;
         (0..count)
             .map(|_| {
-                let val = self.next() as u64;
+                let val = self.next_int() as u64;
                 (val % range) as i64 + min
             })
             .collect()
     }
 
-    fn next_floats(&mut self, count: usize, min: f64, max: f64) -> Vec<f64> {
+    fn random_floats(&mut self, count: usize, min: f64, max: f64) -> Vec<f64> {
         let diff = max - min;
         let max_val = u32::MAX as f64;
         (0..count)
             .map(|_| {
-                let val = self.next() as f64;
+                let val = self.next_int() as f64;
                 (val / max_val) * diff + min
             })
             .collect()
