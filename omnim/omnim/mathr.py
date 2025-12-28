@@ -172,10 +172,10 @@ if HAS_RUST:
         return _lib.clampf(x, min_value, max_value)
 
     def signi(x: int) -> int:
-        return _lib.signf(x)
+        return _lib.signi(x)
 
     def signf(x: float) -> float:
-        return _lib.signi(x)
+        return _lib.signf(x)
 
     def absi(x: int) -> int:
         return _lib.absi(x)
@@ -210,7 +210,7 @@ if HAS_RUST:
     def cos(x: float, term=5) -> float:
         return _lib.cos(x, term)
 
-    def tan(x: float, term=10) -> float:
+    def tan(x: float, term=5) -> float:
         return _lib.tan(x, term)
 
     def asin(x: float, term=10) -> float:
