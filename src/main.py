@@ -1,10 +1,7 @@
-import asyncio
 from dataclasses import dataclass
 import random
 from time import perf_counter
-from typing import Any
-import omnim.rng as rng
-from omnim.rng import randints, randfloats, search
+from omnim.rng import HAS_RUST as HAS_RUST_RNG, randints, randfloats, search
 from omnim.time import benchmark
 import omnim.mathr as mathr
 from omnim.step import frange
@@ -58,7 +55,7 @@ class Item:
 
 @benchmark
 def rng_test():
-    print(f"{rng.HAS_RUST=}")
+    print(f"{HAS_RUST_RNG=}")
 
     omnim_rng_randints(N)
     omnim_rng_randfloats(N)
@@ -118,5 +115,16 @@ if __name__ == "__main__":
     print(f"{M=}")
 
     # rng_test()
-    mathr_test()
+    # mathr_test()
     # main()
+
+    e1 = (1 + (1 / 1_000_000)) ** 1_000_000
+    e2 = sum([(1 / math.factorial(n)) for n in range(100)])
+    print(f"{e1=}")
+    print(f"{e2=}")
+    print(f"{math.e=}")
+    print()
+
+    pi1 = 4 * ((4 * mathr.atan(1 / 5, 20)) - (mathr.atan(1 / 239, 20)))
+    print(f"{pi1=}")
+    print(f"{mathr.HAS_RUST=}")

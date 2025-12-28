@@ -1,6 +1,6 @@
 [package]
 name = "omnim_math_rust"
-version = "0.1.3"
+version = "0.1.6"
 edition = "2024"
 
 [lib]

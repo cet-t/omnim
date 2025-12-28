@@ -1,11 +1,17 @@
 #[unsafe(no_mangle)]
 pub extern "C" fn pi() -> f64 {
-    3.14159265358979323846
+    4. * (4. * atan(1. / 5., 30) - atan(1. / 239., 30))
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn e() -> f64 {
-    2.718281828459045235360287471352
+pub extern "C" fn e(term: i64) -> f64 {
+    let mut res = 1.0;
+    let mut factory = 1.0;
+    for n in 1..term.abs().min(30) {
+        factory *= n as f64;
+        res += 1.0 / factory;
+    }
+    res
 }
 
 #[unsafe(no_mangle)]
@@ -15,7 +21,7 @@ pub extern "C" fn eps() -> f64 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn golden_ratio() -> f64 {
-    (1. + 5f64.powf(0.5)) / 2.
+    (1. + sqrt(5., 10)) / 2.
 }
 
 #[unsafe(no_mangle)]
@@ -220,15 +226,10 @@ pub extern "C" fn powf(x: f64, exp: f64) -> f64 {
     x.powf(exp)
 }
 
+#[warn(unused_variables)]
 #[unsafe(no_mangle)]
 pub extern "C" fn sqrt(x: f64, term: i64) -> f64 {
-    let mut res = x;
-
-    for _ in 0..absi(term) {
-        res = (res + x / res) / 2.;
-    }
-
-    res
+    x.sqrt()
 }
 
 #[unsafe(no_mangle)]
@@ -273,24 +274,26 @@ pub extern "C" fn tan(x: f64, term: i64) -> f64 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn asin(x: f64, term: i64) -> f64 {
-    if absf(x) > 1. {
+    if x.abs() > 1.0 {
         return f64::NAN;
-    } else {
-        let mut res = x;
-        let mut numerator = 1.;
-        let mut denominator = 1.;
-
-        for n in 1..absi(term) {
-            let power = (2 * n - 1) as f64;
-            let term = (numerator / denominator) * (x.powf(power) / power);
-            res += term;
-
-            numerator *= power;
-            denominator *= power;
-        }
-
-        res
     }
+
+    let mut res = 0.0;
+    let mut coef = 1.0;
+
+    let stop = term.abs();
+
+    for n in 0..stop {
+        let p = (2 * n + 1) as f64;
+
+        res += coef * (x.powf(p) / p);
+        coef *= (2 * n + 1) as f64 / (2 * n + 2) as f64;
+
+        if n > 100000 {
+            break;
+        }
+    }
+    res
 }
 
 #[unsafe(no_mangle)]

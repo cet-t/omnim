@@ -1,10 +1,10 @@
 import ctypes
-import math
-from pathlib import Path
 from typing import Final
 
 
 try:
+    from pathlib import Path
+
     _dir = Path(__file__).parent.absolute()
     _dll = _dir / "omnim_math_rust.dll"
     if not _dll.exists():
@@ -25,6 +25,7 @@ except:
 if HAS_RUST:
     _lib.pi.restype = ctypes.c_double
 
+    _lib.e.argtypes = [ctypes.c_longlong]
     _lib.e.restype = ctypes.c_double
 
     _lib.eps.restype = ctypes.c_double
@@ -56,13 +57,13 @@ if HAS_RUST:
     _lib.maxf.restype = ctypes.c_double
 
     _lib.clampi.argtypes = [ctypes.c_longlong, ctypes.c_longlong, ctypes.c_longlong]
-    _lib.clampi.restype = ctypes.c_int
+    _lib.clampi.restype = ctypes.c_longlong
 
     _lib.clampf.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_double]
     _lib.clampf.restype = ctypes.c_double
 
     _lib.signi.argtypes = [ctypes.c_longlong]
-    _lib.signi.restype = ctypes.c_int
+    _lib.signi.restype = ctypes.c_longlong
 
     _lib.signf.argtypes = [ctypes.c_double]
     _lib.signf.restype = ctypes.c_double
@@ -119,12 +120,12 @@ if HAS_RUST:
     _lib.is_prime.restype = ctypes.c_bool
 
     _lib.fibonacci.argtypes = [ctypes.c_longlong]
-    _lib.fibonacci.restype = ctypes.c_int
+    _lib.fibonacci.restype = ctypes.c_longlong
 
     pi: Final[float] = _lib.pi()
-    e: Final[float] = _lib.e()
+    e: Final[float] = _lib.e(30)
     eps: Final[float] = _lib.eps()
-    golden_ratio: Final[float] = _lib.golden_ratio()
+    phi: Final[float] = _lib.golden_ratio()
 
     def approximately(a: float, b: float) -> bool:
         return _lib.approximately(a, b)
@@ -236,11 +237,13 @@ if HAS_RUST:
 
 
 if __name__ == "__main__":
+    import math
+
     print(f"{HAS_RUST=}")
     print(f"{pi=}")
     print(f"{e=}")
     print(f"{eps=}")
-    print(f"{golden_ratio=}")
+    print(f"{phi=}")
     print(f"{approximately(0, 1)=}")
     print(f"{to_degrees(0)=}")
     print(f"{to_radians(0)=}")
@@ -288,3 +291,15 @@ if __name__ == "__main__":
     print(f"{fibonacci(10)=}")
 
     print(f"{eix(pi).real=}")
+
+    # pi4 = sum([(-1) ** n / (2 * n + 1) for n in range(100_000)])
+    pi0 = 4 * (4 * math.atan(1 / 5) - math.atan(1 / 239))
+    pi1 = 4 * (4 * atan(1 / 5, 20) - atan(1 / 239, 20))
+    # print(f"{pi4*4=}")
+    print(f"{pi0=}")
+    print(f"{pi1=}")
+    print(f"{sqrt(0.5)=}")
+
+    print(f"{pi=}")
+    print(f"{e=}")
+    print(f"{phi=}")
