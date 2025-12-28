@@ -1,11 +1,12 @@
+from abc import ABCMeta
 from enum import Enum
-from typing import Final, Optional, TypeVar
+from typing import Final, TypeVar
 from os import urandom
 from numba import njit
 from numpy import uint64, int64
 
 try:
-    from . import omnim_rng_rust
+    from . import omnim_rng_rust  # type: ignore
 
     HAS_RUST = True
 except ImportError:
@@ -17,10 +18,6 @@ T = TypeVar("T")
 class rng_mode(Enum):
     xorshift = 0
     pcg32 = 1
-
-
-def has_rust() -> bool:
-    return HAS_RUST
 
 
 def random_device() -> int:
@@ -151,17 +148,60 @@ class rng_rust:
         return seq[self.random_int(0, len(seq) - 1)]
 
 
-if has_rust():
-    _rg = rng_rust(seed=0, mode=rng_mode.pcg32)
-else:
-    _rg = rng_basic(seed=0, mode=rng_mode.pcg32)
+class bst_basic:
+    def __init__(self, *, seed=0, mode=rng_mode.xorshift) -> None:
+        if seed == 0:
+            seed = random_device()
+        self.__source = rng_basic(seed=seed, mode=mode)
 
-randint = _rg.random_int
-randints = _rg.random_ints
-randfloat = _rg.random_float
-randfloats = _rg.random_floats
-choice = _rg.random_choice
+    def search(self, *weights: float) -> int:
+        if (length := len(weights)) < 1:
+            return -1
+
+        total_weights = 0.0
+        accumulate_weights = list[float]()
+        for weight in weights:
+            total_weights += weight
+            accumulate_weights.append(total_weights)
+
+        r = self.__source.random_float(0, total_weights)
+        bottom = 0
+        top = length - 1
+        while bottom < top:
+            middle = int((bottom + top) / 2)
+            if r > accumulate_weights[middle]:
+                bottom = middle + 1
+            else:
+                if r >= (accumulate_weights[middle - 1] if middle > 0 else 0.0):
+                    return middle
+                top = middle
+        return top
+
+
+class bst_rust:
+    def __init__(self, *, seed=0, mode=rng_mode.xorshift) -> None:
+        if seed == 0:
+            seed = random_device()
+        self.__source = omnim_rng_rust.BinarySearch(seed)
+
+    def search(self, *weights: float) -> int:
+        return self.__source.search(list(weights))
+
+
+if HAS_RUST:
+    _rng = rng_rust(seed=0, mode=rng_mode.pcg32)
+    _bst = bst_rust(seed=0)
+else:
+    _rng = rng_basic(seed=0, mode=rng_mode.pcg32)
+    _bst = bst_basic(seed=0)
+
+randint = _rng.random_int
+randints = _rng.random_ints
+randfloat = _rng.random_float
+randfloats = _rng.random_floats
+choice = _rng.random_choice
+search = _bst.search
 
 
 if __name__ == "__main__":
-    print(f"{has_rust()=}")
+    print(f"{HAS_RUST=}")

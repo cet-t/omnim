@@ -1,10 +1,14 @@
 import asyncio
+from dataclasses import dataclass
 import random
-from threading import Thread
 from time import perf_counter
-from omnim.rng import has_rust, randints, randfloats
+from typing import Any
+import omnim.rng as rng
+from omnim.rng import randints, randfloats, search
 from omnim.time import benchmark
-from omnim.math import floor
+import omnim.mathr as mathr
+from omnim.step import frange
+import math
 
 
 def bench(m):
@@ -15,16 +19,15 @@ def bench(m):
                 func(*args, **kwargs)
             end = perf_counter()
             elapsed = (end - start) * 1000
-            print(
-                f"{func.__name__.ljust(len('omnim_rng_randfloats'))}: {elapsed/m:.3f} ms"
-            )
+            print(f"{func.__name__.ljust(len('omnim_xxx_')+15)}: {elapsed/m:.3f} ms")
 
         return inner_wrapper
 
     return wrapper
 
 
-M = 3
+M = 10
+N = 100_000_000
 
 
 @bench(M)
@@ -47,28 +50,73 @@ def random_uniform(N):
     _ = [random.uniform(0, 10) for _ in range(N)]
 
 
-@benchmark
-async def main():
-    print(f"{has_rust()=}")
+@dataclass
+class Item:
+    rate: str
+    weight: float
 
-    N = 100_000_000
-    print(f"{N=:#,}")
-    print(f"{M=}")
+
+@benchmark
+def rng_test():
+    print(f"{rng.HAS_RUST=}")
 
     omnim_rng_randints(N)
     omnim_rng_randfloats(N)
-    random_randint(N)
-    random_uniform(N)
+    # random_randint(N)
+    # random_uniform(N)
 
-    """
-    N=100,000,000
-    M=3
-    omnim_rng_randints  : 495.968 ms
-    omnim_rng_randfloats: 1530.959 ms
-    random_randint      : 18524.586 ms
-    random_uniform      : 9165.171 ms
-    """
+
+@bench(M)
+def omnim_mathr_sinx(N):
+    for _ in range(N):
+        _ = mathr.sin(0.1)
+
+
+@bench(M)
+def math_sinx(N):
+    for _ in range(N):
+        _ = math.sin(0.1)
+
+
+@benchmark
+def mathr_test():
+    print(f"{mathr.HAS_RUST=}")
+
+    omnim_mathr_sinx(N)
+    math_sinx(N)
+
+
+@benchmark
+def main():
+    items = [
+        Item("R", 80),
+        Item("SR", 20),
+        Item("SSR", 0.1),
+    ]
+    weights = [item.weight for item in items]
+    results = {
+        0: 0,
+        1: 0,
+        2: 0,
+    }
+
+    for _ in range(N):
+        results[search(*weights)] += 1
+
+    print(
+        "\n".join(
+            [
+                f"{item.rate}({100*(item.weight/sum(weights)):.2f}%): {100*(v/N):.3f}%"
+                for (_, v), item in zip(results.items(), items)
+            ]
+        )
+    )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print(f"{N=:#,}")
+    print(f"{M=}")
+
+    # rng_test()
+    mathr_test()
+    # main()
